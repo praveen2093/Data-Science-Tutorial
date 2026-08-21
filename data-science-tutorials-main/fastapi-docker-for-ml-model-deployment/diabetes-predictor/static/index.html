@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Diabetes Progression Predictor</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+      }
+
+      .container {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        max-width: 600px;
+        width: 100%;
+        padding: 40px;
+      }
+
+      header {
+        text-align: center;
+        margin-bottom: 40px;
+        border-bottom: 3px solid #667eea;
+        padding-bottom: 20px;
+      }
+
+      h1 {
+        color: #333;
+        font-size: 28px;
+        margin-bottom: 10px;
+      }
+
+      .subtitle {
+        color: #666;
+        font-size: 14px;
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+      }
+
+      .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 8px;
+        color: #333;
+        font-weight: 600;
+        font-size: 14px;
+      }
+
+      .label-help {
+        font-size: 12px;
+        color: #888;
+        font-weight: normal;
+        display: block;
+        margin-top: 3px;
+      }
+
+      input[type="number"],
+      select {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: border-color 0.3s;
+      }
+
+      input[type="number"]:focus,
+      select:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      }
+
+      .button-group {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+        margin-top: 30px;
+      }
+
+      button {
+        padding: 14px;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+
+      .btn-predict {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+      }
+
+      .btn-predict:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+      }
+
+      .btn-predict:active {
+        transform: translateY(0);
+      }
+
+      .btn-reset {
+        background: #f0f0f0;
+        color: #333;
+        border: 2px solid #e0e0e0;
+      }
+
+      .btn-reset:hover {
+        background: #e8e8e8;
+      }
+
+      .loading {
+        display: none;
+        text-align: center;
+        color: #667eea;
+        margin-top: 20px;
+      }
+
+      .loading.active {
+        display: block;
+      }
+
+      .spinner {
+        border: 4px solid #f0f0f0;
+        border-top: 4px solid #667eea;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 10px;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .result-container {
+        display: none;
+        margin-top: 30px;
+        padding: 25px;
+        background: #f8f9fa;
+        border-radius: 12px;
+        border-left: 5px solid #667eea;
+      }
+
+      .result-container.active {
+        display: block;
+        animation: slideIn 0.3s ease-out;
+      }
+
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .result-header {
+        font-size: 18px;
+        font-weight: 700;
+        color: #333;
+        margin-bottom: 15px;
+      }
+
+      .result-score {
+        font-size: 32px;
+        font-weight: 700;
+        color: #667eea;
+        margin-bottom: 10px;
+      }
+
+      .result-interpretation {
+        font-size: 16px;
+        color: #555;
+        margin-bottom: 20px;
+        padding: 15px;
+        background: white;
+        border-radius: 8px;
+        border-left: 4px solid #667eea;
+      }
+
+      .result-summary {
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        font-size: 13px;
+        color: #666;
+      }
+
+      .summary-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid #eee;
+      }
+
+      .summary-item:last-child {
+        border-bottom: none;
+      }
+
+      .summary-label {
+        font-weight: 600;
+        color: #333;
+      }
+
+      .error-message {
+        display: none;
+        padding: 15px;
+        background: #fee;
+        color: #c33;
+        border-radius: 8px;
+        border-left: 4px solid #c33;
+        margin-top: 20px;
+      }
+
+      .error-message.active {
+        display: block;
+      }
+
+      @media (max-width: 600px) {
+        .container {
+          padding: 20px;
+        }
+
+        h1 {
+          font-size: 22px;
+        }
+
+        .form-row {
+          grid-template-columns: 1fr;
+        }
+
+        .button-group {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>🏥 Diabetes Progression Predictor</h1>
+        <p class="subtitle">
+          Enter patient data to predict diabetes progression
+        </p>
+      </header>
+
+      <form id="predictionForm">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="age">
+              Age (years)
+              <span class="label-help">20-80 years</span>
+            </label>
+            <input
+              type="number"
+              id="age"
+              name="age"
+              min="20"
+              max="80"
+              value="50"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="sex">
+              Sex
+              <span class="label-help">Gender</span>
+            </label>
+            <select id="sex" name="sex" required>
+              <option value="0">Female</option>
+              <option value="1" selected>Male</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="bmi">
+              BMI (Body Mass Index)
+              <span class="label-help">15-50</span>
+            </label>
+            <input
+              type="number"
+              id="bmi"
+              name="bmi"
+              min="15"
+              max="50"
+              step="0.1"
+              value="25.5"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="bp">
+              Blood Pressure (mmHg)
+              <span class="label-help">60-180</span>
+            </label>
+            <input
+              type="number"
+              id="bp"
+              name="bp"
+              min="60"
+              max="180"
+              value="120"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="s1">
+              Cholesterol (Total)
+              <span class="label-help">mg/dL</span>
+            </label>
+            <input
+              type="number"
+              id="s1"
+              name="s1"
+              min="0"
+              step="0.1"
+              value="195"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="s2">
+              LDL Cholesterol
+              <span class="label-help">mg/dL</span>
+            </label>
+            <input
+              type="number"
+              id="s2"
+              name="s2"
+              min="0"
+              step="0.1"
+              value="130"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="s3">
+              HDL Cholesterol
+              <span class="label-help">mg/dL</span>
+            </label>
+            <input
+              type="number"
+              id="s3"
+              name="s3"
+              min="0"
+              step="0.1"
+              value="40"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="s4">
+              Total/HDL Ratio
+              <span class="label-help">Ratio</span>
+            </label>
+            <input
+              type="number"
+              id="s4"
+              name="s4"
+              min="0"
+              step="0.1"
+              value="4.5"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="s5">
+              Log(Triglycerides)
+              <span class="label-help">Log scale</span>
+            </label>
+            <input
+              type="number"
+              id="s5"
+              name="s5"
+              step="0.1"
+              value="4.2"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="s6">
+              Glucose (mg/dL)
+              <span class="label-help">Fasting glucose</span>
+            </label>
+            <input
+              type="number"
+              id="s6"
+              name="s6"
+              min="0"
+              value="90"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="button-group">
+          <button type="submit" class="btn-predict">Predict Progression</button>
+          <button type="reset" class="btn-reset">Clear Form</button>
+        </div>
+
+        <div class="loading" id="loading">
+          <div class="spinner"></div>
+          <p>Analyzing patient data...</p>
+        </div>
+
+        <div class="error-message" id="errorMessage"></div>
+      </form>
+
+      <div class="result-container" id="resultContainer">
+        <div class="result-header">Prediction Result</div>
+        <div class="result-score" id="resultScore">—</div>
+        <div class="result-interpretation" id="resultInterpretation">—</div>
+        <div class="result-summary" id="resultSummary"></div>
+      </div>
+    </div>
+
+    <script>
+      const form = document.getElementById("predictionForm");
+      const loading = document.getElementById("loading");
+      const resultContainer = document.getElementById("resultContainer");
+      const resultScore = document.getElementById("resultScore");
+      const resultInterpretation = document.getElementById(
+        "resultInterpretation",
+      );
+      const resultSummary = document.getElementById("resultSummary");
+      const errorMessage = document.getElementById("errorMessage");
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        // Gather form data
+        const formData = {
+          age: parseInt(document.getElementById("age").value),
+          sex: parseInt(document.getElementById("sex").value),
+          bmi: parseFloat(document.getElementById("bmi").value),
+          bp: parseInt(document.getElementById("bp").value),
+          s1: parseFloat(document.getElementById("s1").value),
+          s2: parseFloat(document.getElementById("s2").value),
+          s3: parseFloat(document.getElementById("s3").value),
+          s4: parseFloat(document.getElementById("s4").value),
+          s5: parseFloat(document.getElementById("s5").value),
+          s6: parseInt(document.getElementById("s6").value),
+        };
+
+        // Show loading state
+        loading.classList.add("active");
+        resultContainer.classList.remove("active");
+        errorMessage.classList.remove("active");
+
+        try {
+          // Make API call to FastAPI backend
+          const response = await fetch("/api/predict-raw", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(formData),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || "Prediction failed");
+          }
+
+          const result = await response.json();
+
+          // Display results
+          resultScore.textContent = result.predicted_progression_score;
+          resultInterpretation.textContent = result.interpretation;
+
+          // Build summary
+          let summaryHTML = "";
+          if (result.input_summary) {
+            summaryHTML += `
+                        <div class="summary-item">
+                            <span class="summary-label">Age:</span>
+                            <span>${result.input_summary.age_years} years</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Sex:</span>
+                            <span>${result.input_summary.sex}</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">BMI:</span>
+                            <span>${result.input_summary.bmi}</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Blood Pressure:</span>
+                            <span>${result.input_summary.blood_pressure_mmhg} mmHg</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Glucose Level:</span>
+                            <span>${result.input_summary.glucose_mg_dl} mg/dL</span>
+                        </div>
+                    `;
+          }
+          resultSummary.innerHTML = summaryHTML;
+          resultContainer.classList.add("active");
+        } catch (error) {
+          console.error("Error:", error);
+          errorMessage.textContent = `Error: ${error.message}`;
+          errorMessage.classList.add("active");
+        } finally {
+          loading.classList.remove("active");
+        }
+      });
+
+      // Reset form
+      document.querySelector(".btn-reset").addEventListener("click", () => {
+        resultContainer.classList.remove("active");
+        errorMessage.classList.remove("active");
+      });
+    </script>
+  </body>
+</html>

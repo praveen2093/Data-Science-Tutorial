@@ -40,9 +40,9 @@ print(f"Mean Squared Error: {mse:.2f}")
 print(f"R² Score: {r2:.3f}")
 
 # Create models directory and save model
-os.makedirs('models', exist_ok=True)
+os.makedirs('/workspaces/Data-Science-Tutorial/data-science-tutorials-main/fastapi-docker-for-ml-model-deployment/diabetes-predictor/models', exist_ok=True)
 
-with open('models/diabetes_model.pkl', 'wb') as f:
+with open('/workspaces/Data-Science-Tutorial/data-science-tutorials-main/fastapi-docker-for-ml-model-deployment/diabetes-predictor/models/diabetes_model.pkl', 'wb') as f:
     pickle.dump(model, f)
 
 print("Model trained and saved successful")

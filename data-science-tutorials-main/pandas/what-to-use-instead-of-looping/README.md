@@ -1,0 +1,1 @@
+Code for [Stop Writing Loops in Pandas: 7 Faster Alternatives to Try](https://www.kdnuggets.com/stop-writing-loops-in-pandas-7-faster-alternatives-to-try)

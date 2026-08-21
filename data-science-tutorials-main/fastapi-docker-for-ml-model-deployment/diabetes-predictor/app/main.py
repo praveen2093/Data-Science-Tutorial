@@ -1,9 +1,13 @@
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import pickle
 import numpy as np
 import os
 from typing import Optional
+from pathlib import Path
 
 # Normalization parameters (from sklearn diabetes dataset)
 FEATURE_MEANS = np.array([0.04519646, 0.02637854, -0.04453624, -0.04670327, -0.04547462, 
@@ -80,16 +84,47 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# Add CORS middleware to allow frontend requests
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Get the directory of this file and construct the static path
+app_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(app_dir)
+static_dir = os.path.join(parent_dir, "static")
+
+# Mount static files
+if os.path.exists(static_dir):
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
 # Load the trained model
-model_path = os.path.join("models", "diabetes_model.pkl")
+model_path = os.path.join("/workspaces/Data-Science-Tutorial/data-science-tutorials-main/fastapi-docker-for-ml-model-deployment/diabetes-predictor/models", "diabetes_model.pkl")
 with open(model_path, 'rb') as f:
     model = pickle.load(f)
 
-@app.post("/predict")
+@app.get("/")
+def serve_frontend():
+    """Serve the frontend HTML"""
+    index_path = os.path.join(static_dir, "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    return {"status": "healthy", "message": "Frontend not found, but API is running"}
+
+@app.get("/health")
+def health_check():
+    """Health check endpoint"""
+    return {"status": "healthy", "model": "diabetes_progression_v1"}
+
+@app.post("/api/predict")
 def predict_progression(patient: PatientData):
     """
     Predict diabetes progression score from normalized values.
-    Use /predict-raw for easier input with real-world values.
+    Use /api/predict-raw for easier input with real-world values.
     """
     # Convert input to numpy array
     features = np.array([[
@@ -97,18 +132,19 @@ def predict_progression(patient: PatientData):
         patient.s1, patient.s2, patient.s3, patient.s4,
         patient.s5, patient.s6
     ]])
-    
+    print(features)
     # Make prediction
     prediction = model.predict(features)[0]
+    print(prediction)
     
     # Return result with additional context
     return {
         "predicted_progression_score": round(prediction, 2),
         "interpretation": get_interpretation(prediction),
-        "note": "Using normalized values. Use /predict-raw for real-world values."
+        "note": "Using normalized values. Use /api/predict-raw for real-world values."
     }
 
-@app.post("/predict-raw")
+@app.post("/api/predict-raw")
 def predict_progression_raw(patient: RawPatientData):
     """
     Predict diabetes progression score from REAL-WORLD raw values.
@@ -159,8 +195,4 @@ def get_interpretation(score):
         return "Average progression"
     else:
         return "Above average progression"
-
-@app.get("/")
-def health_check():
-    return {"status": "healthy", "model": "diabetes_progression_v1"}
 
